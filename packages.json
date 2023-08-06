@@ -1,0 +1,12 @@
+{
+    "chassis"   : "naiad_chassis",
+    "ch"        : "naiad_chassis",    
+    "library"   : "naiad_library",
+    "lib"       : "naiad_library",
+    "interfaces"   : "naiad_interfaces",
+    "if"       : "naiad_interfaces",    
+    "common"    : "naiad_common",
+    "com"       : "naiad_common",
+    "launch"    : "naiad_launch",
+    "fog"       : "naiad_fog"
+}
