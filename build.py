@@ -47,6 +47,23 @@ def workspace_path(sub_folder=None):
         return os.path.join(ws_path, sub_folder)
     else:
         return ws_path
+    
+def command_string(cmds):
+    s = ''
+    for cmd in cmds:
+        s +=' ' + cmd
+    return s
+    
+def get_all_packages():
+    ws = workspace_path()
+    src = os.path.join(ws, 'src')
+    pkgs = []
+    for item in os.listdir(src):
+        if not item.startswith('.'):
+            path = os.path.join(src, item)
+            if os.path.isdir(path):
+                pkgs.append(path)
+    return pkgs
 
 def arguments():
     parser = argparse.ArgumentParser(description="Ros packages building helpers")
@@ -56,6 +73,7 @@ def arguments():
     parser.add_argument('-S', '--sync', metavar='REMOTE', nargs='?', const='', default=None, help="Sync install folder to REMOTE")
     #parser.add_argument('-r', '--run', action='store_true', help="Run package")
     parser.add_argument('-D', '--distclean', action='store_true', help="Clean workspace")    
+    parser.add_argument('-g', '--git', action='store_true', help="Use git command for all packages")    
     # nargs = ？ 表示支持允许为空或1个
     parser.add_argument('package', nargs='*', metavar='', help="Target package")
 
@@ -135,6 +153,23 @@ def sync_install(remote):
 def run_package(pkg):
     pass
 
+def run_git_command(cmds):
+    ## pkgs is git command 
+    pkgs = get_all_packages()    
+    if len(pkgs) == 0:
+        print("***No packages found")
+        sys.exit(1)
+    if len(cmds) == 0:
+        print("***No git command specified")
+        sys.exit(1)
+    for pkg in pkgs:
+        git_cmd = ['git']
+        for cmd in cmds:
+            git_cmd.append(cmd)
+        print("==> enter project:", pkg)
+        print("==> execute command:", command_string(git_cmd))
+        subprocess.run(git_cmd, check=True, cwd=pkg)
+
 
 if __name__ == "__main__":
     args = arguments()
@@ -160,6 +195,8 @@ if __name__ == "__main__":
             sync_install(remote)
         else:
             print("***Please input remote info: e.g. neptune@192.168.2.100:/home/neptune/")
+    elif args.git:
+        run_git_command(args.package)
     else:
         ## build packages 
         build_packages(args.package, args.cross)        
