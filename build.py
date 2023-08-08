@@ -65,19 +65,6 @@ def get_all_packages():
                 pkgs.append(path)
     return pkgs
 
-def arguments():
-    parser = argparse.ArgumentParser(description="Ros packages building helpers")
-    parser.add_argument('-l', '--list', action='store_true', help="List all packages")
-    parser.add_argument('-c', '--cross', action='store_true', help="Cross comipler")
-    # 有指定-S 但无参数，使用const, 未使用-S，使用default
-    parser.add_argument('-S', '--sync', metavar='REMOTE', nargs='?', const='', default=None, help="Sync install folder to REMOTE")
-    #parser.add_argument('-r', '--run', action='store_true', help="Run package")
-    parser.add_argument('-D', '--distclean', action='store_true', help="Clean workspace")    
-    parser.add_argument('-g', '--git', action='store_true', help="Use git command for all packages")    
-    # nargs = ？ 表示支持允许为空或1个
-    parser.add_argument('package', nargs='*', metavar='', help="Target package")
-
-    return parser.parse_args()
 
 def list_packages():
     subprocess.run(['colcon', 'list'], check=True)
@@ -98,7 +85,10 @@ def build_packages(pkgs, cross_build):
         alias.append(full_package_name(pkg))
 
     print("-- building packages --")
-    print("=> packages   :", alias)
+    if len(alias) == 0:
+        print("=> packages   :", "all")
+    else:
+        print("=> packages   :", alias)
     print("=> cross build:", cross_build)
 
     colcon_build = ['colcon', 'build', '--merge-install']
@@ -150,6 +140,20 @@ def sync_install(remote):
     else:
         print("==> Sync %s failed, ret=%d" % (remote, result.returncode))        
 
+
+def sync_remote(option):
+    remote = ''
+    if option:
+        remote = option
+    else:
+        remote = load_remote_info()
+    if remote:            
+        sync_install(remote)
+    else:
+        print("***Please input remote info: e.g. neptune@192.168.2.100:/home/neptune/")   
+
+
+
 def run_package(pkg):
     pass
 
@@ -172,7 +176,17 @@ def run_git_command(cmds):
 
 
 if __name__ == "__main__":
-    args = arguments()
+    parser = argparse.ArgumentParser(description="Ros packages building helpers")
+    parser.add_argument('-l', '--list', action='store_true', help="List all packages")
+    parser.add_argument('-c', '--cross', action='store_true', help="Cross comipler")
+    # 有指定-S 但无参数，使用const, 未使用-S，使用default
+    parser.add_argument('-S', '--sync', metavar='REMOTE', nargs='?', const='', default=None, help="Sync install folder to REMOTE")
+    #parser.add_argument('-r', '--run', action='store_true', help="Run package")
+    parser.add_argument('-D', '--distclean', action='store_true', help="Clean workspace")    
+    parser.add_argument('-g', '--git', nargs='*', metavar='ARG', default=None, help="Use git command for all packages")   
+    # nargs = ？ 表示支持允许为空或1个
+    parser.add_argument('-b', '--build', nargs='*', metavar='PACKAGE', default=None, help="Build packages")
+    args = parser.parse_args()
     #print(args)
     load_packages_name()
     
@@ -185,19 +199,15 @@ if __name__ == "__main__":
     #         print("***Please input package name")
     #         sys.exit(1)
     #     run_package(args.package[0])
+    elif args.git and len(args.git) > 0:
+        run_git_command(args.git)
+    elif args.build != None:
+        ## build packages
+        build_packages(args.build, args.cross)    
+        if args.sync != None:
+            sync_remote(args.sync)
     elif args.sync != None:
-        remote = ''
-        if args.sync:
-            remote = args.sync
-        else:
-            remote = load_remote_info()
-        if remote:            
-            sync_install(remote)
-        else:
-            print("***Please input remote info: e.g. neptune@192.168.2.100:/home/neptune/")
-    elif args.git:
-        run_git_command(args.package)
+        sync_remote(args.sync)
     else:
-        ## build packages 
-        build_packages(args.package, args.cross)        
+        parser.print_usage()
 
